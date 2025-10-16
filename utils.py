@@ -150,7 +150,6 @@ def perform_lux_measurement(context, sensor_obj):
 def on_ev_compensation_change(self, context):
     scene = context.scene
     
-    # 測定結果がなければ何もしない
     if not scene.lux_meter_results:
         return
 

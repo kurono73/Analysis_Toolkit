@@ -136,11 +136,9 @@ def draw_texeldensity_panel(layout, scene, context, _):
     row.alignment = 'CENTER'
     row.scale_y = 1.2
     if props.result_udim_tiles >= 0:
-        # 数値が0以上なら、翻訳して表示
         udim_text = _("{num} tiles required", num=props.result_udim_tiles)
         row.label(text=udim_text)
     else:
-        # -1なら計算不可として"N/A"を表示
         row.label(text="N/A")
 
 
