@@ -38,25 +38,22 @@ Sun correction compensates for clipped or underexposed HDRIs based on measured i
 
 It is especially useful for VFX look development or architectural lighting design.
 
-<aside>
-💡
 
-note:
+>💡note:    
+>It can also be used when using Eevee, but measurements are taken using the Cycles engine.  
+>These are only reference values and are not guaranteed to match reality.
 
-It can also be used when using Eevee, but measurements are taken using the Cycles engine.
-These are only reference values and are not guaranteed to match reality.
 
-</aside>
 
 ### Interface
 
 - **1. Sensor Management:**
     - **Add Sensor:** Creates a new arrow-shaped Empty at the 3D cursor's location. All sensors are automatically placed in a dedicated collection named "LightMeter Sensors".
 - **2. Correction Settings:**
-    - **EV Compensation:**This setting is important when you want to match the calculated values to real-world light meter readings.In CG, lighting that appears visually correct is typically the result of a camera applying exposure compensation to achieve a proper-looking image.
-    EV Compensation converts visually adjusted exposure back to **0 EV physical luminance**, allowing illuminance to be calculated and displayed on an absolute physical scale.
-    The EV value can be derived from exposure data recorded during **HDRI creation,** or from metadata embedded in**VFX plates or source photography**.
-    If the original exposure reference is unknown, entering an estimated EV value for the environment will produce results that are closer to real-world illuminance levels.
+    - **EV Compensation:**This setting is important when you want to match the calculated values to real-world light meter readings.In CG, lighting that appears visually correct is typically the result of a camera applying exposure compensation to achieve a proper-looking image.  
+    EV Compensation converts visually adjusted exposure back to **0 EV physical luminance**, allowing illuminance to be calculated and displayed on an absolute physical scale.  
+    The EV value can be derived from exposure data recorded during **HDRI creation,** or from metadata embedded in**VFX plates or source photography**.  
+    If the original exposure reference is unknown, entering an estimated EV value for the environment will produce results that are closer to real-world illuminance levels.  
         - Reference EV value：`Lux EV Converter`>`EV / Lux Reference`
         - EV calculation from metadata ： `EV Calculator`)
     
@@ -82,13 +79,10 @@ These are only reference values and are not guaranteed to match reality.
 1. To match a real-world lighting condition, select a specific sensor, select your `Sun` light, enter a `Target Lux`, and click **Adjust Sun Strength**.
 2. Click **Measure All Sensors** again to check if the target illuminance is achieved.
 
-<aside>
-💡
 
-When correcting a clipped HDRI, measure the actual illuminance on-site and use the known **inverse EV correction** value of the created HDRI.
-Sun correction results and dark scenes will have some errors in the results due to sampling accuracy issues.
+>💡When correcting a clipped HDRI, measure the actual illuminance on-site and use the known **inverse EV correction** value of the created HDRI.  
+>Sun correction results and dark scenes will have some errors in the results due to sampling accuracy issues.
 
-</aside>
 
 ---
 
@@ -153,7 +147,7 @@ Calculates the geometric distance to the horizon based on the active camera's he
 
 ## 6. Parallax Distance Calculation
 
-Determine the distance at which background elements will appear static (i.e., have less than a specified parallax shift).
+Determine the distance at which background elements will appear static (i.e., have less than a specified parallax shift).  
 Useful for calculating distances that can be replaced with matte painting.
 
 ### Interface
@@ -176,7 +170,7 @@ Useful for calculating distances that can be replaced with matte painting.
 
 ## 7. Shooting Distance
 
-Calculates the straight-line distance from the active camera to a specified target in the scene.
+Calculates the straight-line distance from the active camera to a specified target in the scene.  
 Useful for pre-visualization, focus distance setup, or depth-of-field planning.
 
 ### Interface
