@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "Analysis_Toolkit"
-version = "1.0.0"
+version = "1.0.1"
 name = "Analysis Toolkit"
 tagline = "Measurement calculations, illuminance, distance, speed, and more"
 maintainer = "Naoki Korematsu" 

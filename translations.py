@@ -43,6 +43,7 @@ translation_dict = {
         ("*" , "Target Object:"): "対象オブジェクト:",
         ("*" , "Settings"): "設定",
         ("*" , "Target Pixel Ratio:"): "目標ピクセル比率:",
+        ("*" , "How many texture pixels to assign per 1 screen pixel. The slider goes up to 100%, but higher values can be entered manually"): "1スクリーンピクセルに割り当てるテクスチャピクセル数。スライダーは100%まで上がりますが、それ以上の値を手動で入力することもできます",
         ("*" , "UDIM Base Resolution:"): "UDIM基準解像度:",
         ("*" , "Select an object"): "オブジェクトを選択",
         ("*" , "Object has no UV map!"): "オブジェクトにUVマップがありません！",

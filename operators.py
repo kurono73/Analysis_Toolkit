@@ -8,8 +8,8 @@ from mathutils import Vector
 class luxmeter_OT_AddSensor(bpy.types.Operator):
     bl_idname = "scene_analysis.add_sensor"
     bl_label = "Add Sensor"
-    bl_description = "Adds a new sensor to the 'LuxMeter Sensors' collection at the 3D cursor's position"
-
+    bl_description = bpy.app.translations.pgettext_tip("Adds a new sensor to the 'LuxMeter Sensors' collection at the 3D cursor's position")
+    bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
         collection_name = "LuxMeter Sensors"
@@ -29,11 +29,13 @@ class luxmeter_OT_AddSensor(bpy.types.Operator):
         return {'FINISHED'}
 
 class luxmeter_OT_MeasureAll(bpy.types.Operator):
-    """Measure the illuminance of all sensors in the collection"""
     bl_idname = "scene_analysis.measure_all"
     bl_label = "Measure All Sensors"
+    bl_description = bpy.app.translations.pgettext_tip("Measures the illuminance (lux) for all sensors in the collection. This may take time as it involves rendering")
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+        props = context.scene.analysis_toolkit_props
         collection_name = "LuxMeter Sensors"
         if collection_name not in bpy.data.collections:
             self.report({'WARNING'}, f"Collection '{collection_name}' not found.")
@@ -45,31 +47,27 @@ class luxmeter_OT_MeasureAll(bpy.types.Operator):
             self.report({'WARNING'}, "No sensors found in the collection.")
             return {'CANCELLED'}
 
-        context.scene.lux_meter_results.clear()
+        props.lux_meter_results.clear()
         lux_values = []
         
-
-        scale = context.scene.speedometer_props.scale_factor
+        scale = props.speedometer_props.scale_factor
         if scale <= 0: scale = 1.0
-        ev_comp = context.scene.lux_meter_ev_compensation
+        ev_comp = props.lux_meter_ev_compensation
         
         wm = context.window_manager
         wm.progress_begin(0, len(sensors))
 
         for i, sensor in enumerate(sensors):
             self.report({'INFO'}, f"Measuring sensor '{sensor.name}'... ({i+1}/{len(sensors)})")
-            # 1. Get raw measurements
             raw_cycles_lux = utils.perform_lux_measurement(context, sensor)
             
             if raw_cycles_lux is not None:
-                new_result = context.scene.lux_meter_results.add()
+                new_result = props.lux_meter_results.add()
                 new_result.name = sensor.name
                 
-                # 2. Scale corrections applied and saved as "physical values" in raw_lux
                 physical_lux = raw_cycles_lux / (scale**2)
                 new_result.raw_lux = physical_lux
                 
-                # 3. Further EV correction is applied and saved in lux as "for display".
                 display_lux = physical_lux * (2**ev_comp)
                 new_result.lux = display_lux
                 
@@ -80,9 +78,9 @@ class luxmeter_OT_MeasureAll(bpy.types.Operator):
         wm.progress_end()
 
         if lux_values:
-            context.scene.lux_meter_avg_lux = sum(lux_values) / len(lux_values)
-            context.scene.lux_meter_min_lux = min(lux_values)
-            context.scene.lux_meter_max_lux = max(lux_values)
+            props.lux_meter_avg_lux = sum(lux_values) / len(lux_values)
+            props.lux_meter_min_lux = min(lux_values)
+            props.lux_meter_max_lux = max(lux_values)
             self.report({'INFO'}, "All sensor measurements are complete.")
         else:
             self.report({'WARNING'}, "No valid measurements were obtained.")
@@ -91,8 +89,7 @@ class luxmeter_OT_MeasureAll(bpy.types.Operator):
 class luxmeter_OT_SaveResultsCSV(bpy.types.Operator):
     bl_idname = "scene_analysis.save_results_csv"
     bl_label = "Save Results as CSV"
-    bl_description = "Saves the names and lux values of all measured sensors to a CSV file"
-
+    bl_description = bpy.app.translations.pgettext_tip("Saves the names and lux values of all measured sensors to a CSV file")
     
     filepath: StringProperty(subtype="FILE_PATH")
 
@@ -102,7 +99,7 @@ class luxmeter_OT_SaveResultsCSV(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
-        results = context.scene.lux_meter_results
+        results = context.scene.analysis_toolkit_props.lux_meter_results
         if not results:
             self.report({'WARNING'}, "No results to save.")
             return {'CANCELLED'}
@@ -121,19 +118,18 @@ class luxmeter_OT_SaveResultsCSV(bpy.types.Operator):
             
         return {'FINISHED'}
 
-
 class luxmeter_OT_CorrectSun(bpy.types.Operator):
-    """Adjust the sun intensity based on the sensor selected in the dropdown"""
     bl_idname = "scene_analysis.correct_sun_active"
     bl_label = "Adjust Sun Strength"
+    bl_description = bpy.app.translations.pgettext_tip("Adjusts the strength of the selected Sun Light so that the 'Basis Sensor' receives the 'Target Lux' value")
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        scene = context.scene
-        sun_obj = scene.lux_meter_sun_object
-        target_lux = scene.lux_meter_target_lux
-        
-        sensor_name = scene.lux_meter_correction_sensor
-        basis_sensor = scene.objects.get(sensor_name)
+        props = context.scene.analysis_toolkit_props
+        sun_obj = props.lux_meter_sun_object
+        target_lux = props.lux_meter_target_lux
+        sensor_name = props.lux_meter_correction_sensor
+        basis_sensor = context.scene.objects.get(sensor_name)
 
         if not sun_obj:
             self.report({'WARNING'}, utils.translate("Sun Light to correct is not selected."))
@@ -142,17 +138,15 @@ class luxmeter_OT_CorrectSun(bpy.types.Operator):
             self.report({'WARNING'}, "Please select a valid sensor from the list.")
             return {'CANCELLED'}
 
-
-        scale = scene.speedometer_props.scale_factor
+        scale = props.speedometer_props.scale_factor
         if scale <= 0: scale = 1.0
-        ev_comp = scene.lux_meter_ev_compensation
+        ev_comp = props.lux_meter_ev_compensation
         
         try:
             physical_target_lux = target_lux / (2**ev_comp)
         except ZeroDivisionError:
             self.report({'ERROR'}, "EV compensation resulted in a division by zero.")
             return {'CANCELLED'}
-
 
         original_strength = sun_obj.data.energy
         
@@ -209,11 +203,13 @@ class luxmeter_OT_CorrectSun(bpy.types.Operator):
 class TEXELDENSITY_OT_Calculate(bpy.types.Operator):
     bl_idname = "scene_analysis.calculate_texel_density"
     bl_label = "Calculate Screen-Space Texel Density"
-    bl_description = "Calculate the optimal texture size based on the active camera view"
+    bl_description = bpy.app.translations.pgettext_tip("Calculate the optimal texture size based on the active camera view")
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        props = context.scene.texel_density_calculator
+        if not hasattr(context.scene, 'analysis_toolkit_props'): return False
+        props = context.scene.analysis_toolkit_props.texel_density_calculator
         return props and props.target_object and props.target_object.data.uv_layers and context.scene.camera
 
     def execute(self, context):
@@ -226,11 +222,12 @@ class TEXELDENSITY_OT_Calculate(bpy.types.Operator):
 
 # --- SPEEDO Operator ---
 class SPEEDO_OT_CalculateRangeSpeed(bpy.types.Operator):
-    bl_idname = "scene_analysis.calculate_range_speed"; bl_label = "Calculate Speed over Range"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Calculates the average, maximum, and minimum speed of the target object between the start and end frames"
+    bl_idname = "scene_analysis.calculate_range_speed"; bl_label = "Calculate Speed over Range"
+    bl_description = bpy.app.translations.pgettext_tip("Calculates the average, maximum, and minimum speed of the target object between the start and end frames")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
         scene = context.scene
-        s = scene.speedometer_props # 新しいプロパティグループを参照
+        s = scene.analysis_toolkit_props.speedometer_props
         target_obj = s.target_obj; start_frame = s.start_frame; end_frame = s.end_frame
         if not target_obj: self.report({'WARNING'}, utils.translate("Please select a target object.")); return {'CANCELLED'}
         if not target_obj.animation_data: self.report({'WARNING'}, utils.translate("Camera has no animation data.")); return {'CANCELLED'}
@@ -258,61 +255,66 @@ class SPEEDO_OT_CalculateRangeSpeed(bpy.types.Operator):
         self.report({'INFO'}, utils.translate("Calculation complete.")); return {'FINISHED'}
 
 class SPEEDO_OT_SetFrameA(bpy.types.Operator):
-    bl_idname = "scene_analysis.speedo_set_frame_a"; bl_label = "Set Point A for Speedo"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Set the current frame as the start point for range analysis"
+    bl_idname = "scene_analysis.speedo_set_frame_a"; bl_label = "Set Point A for Speedo"
+    bl_description = bpy.app.translations.pgettext_tip("Set the current frame as the start point for range analysis")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context): 
-        context.scene.speedometer_props.start_frame = context.scene.frame_current
+        context.scene.analysis_toolkit_props.speedometer_props.start_frame = context.scene.frame_current
         return {'FINISHED'}
 
 class SPEEDO_OT_SetFrameB(bpy.types.Operator):
-    bl_idname = "scene_analysis.speedo_set_frame_b"; bl_label = "Set Point B for Speedo"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Set the current frame as the end point for range analysis"
+    bl_idname = "scene_analysis.speedo_set_frame_b"; bl_label = "Set Point B for Speedo"
+    bl_description = bpy.app.translations.pgettext_tip("Set the current frame as the end point for range analysis")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context): 
-        context.scene.speedometer_props.end_frame = context.scene.frame_current
+        context.scene.analysis_toolkit_props.speedometer_props.end_frame = context.scene.frame_current
         return {'FINISHED'}
 
 # --- DISTANCE Operator ---
 class DISTANCE_OT_CalculateToTarget(bpy.types.Operator):
     bl_idname = "scene_analysis.distance_to_target"; bl_label = "Calculate Shooting Distance"
-    bl_description = "Calculates the distance from the scene's active camera to the target (3D Cursor or Active Object)"
+    bl_description = bpy.app.translations.pgettext_tip("Calculates the distance from the scene's active camera to the target (3D Cursor or Active Object)")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        scene = context.scene; cam = scene.camera
+        scene = context.scene; props = scene.analysis_toolkit_props; cam = scene.camera
         if not cam: self.report({'WARNING'}, utils.translate("Please set a camera as the scene's active camera.")); return {'CANCELLED'}
         cam_loc = cam.matrix_world.translation; target_loc = None
-        if scene.distance_target_mode == 'CURSOR': target_loc = scene.cursor.location
+        if props.distance_target_mode == 'CURSOR': target_loc = scene.cursor.location
         else:
             target_obj = context.active_object
             if not target_obj: self.report({'WARNING'}, utils.translate("Please select an active object as the target.")); return {'CANCELLED'}
             if target_obj == cam: self.report({'WARNING'}, utils.translate("Target cannot be the camera itself.")); return {'CANCELLED'}
             target_loc = target_obj.matrix_world.translation
         distance = (cam_loc - target_loc).length
-        scene.distance_to_target_m = distance
-        scene.distance_camera_name = cam.name
+        props.distance_to_target_m = distance
+        props.distance_camera_name = cam.name
         self.report({'INFO'}, utils.translate("Calculation complete.")); return {'FINISHED'}
 
 # --- HORIZON Operator ---
 class HORIZON_OT_CalculateDistance(bpy.types.Operator):
     bl_idname = "scene_analysis.horizon_distance"; bl_label = "Calculate Horizon Distance"
-    bl_description = "Calculates the distance to the horizon from the active camera's height, considering atmospheric refraction"
+    bl_description = bpy.app.translations.pgettext_tip("Calculates the distance to the horizon from the active camera's height, considering atmospheric refraction")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        cam = context.active_object; scene = context.scene
+        cam = context.active_object; props = context.scene.analysis_toolkit_props
         if not cam or cam.type != 'CAMERA': self.report({'WARNING'}, utils.translate("Please select a camera object.")); return {'CANCELLED'}
-        # ground_offset = scene.horizon_ground_offset * scale 
-        # effective_height = (cam.location.z * scale) - ground_offset
-        ground_offset = scene.horizon_ground_offset
+        ground_offset = props.horizon_ground_offset
         effective_height = cam.location.z - ground_offset
         if effective_height <= 0:
-            scene.horizon_distance_m = 0.0; self.report({'WARNING'}, utils.translate("Camera height must be greater than 0.")); return {'CANCELLED'}
+            props.horizon_distance_m = 0.0; self.report({'WARNING'}, utils.translate("Camera height must be greater than 0.")); return {'CANCELLED'}
         effective_earth_radius = 6371000.0 * (7.0 / 6.0)
         distance = math.sqrt(pow(effective_earth_radius + effective_height, 2) - pow(effective_earth_radius, 2))
-        scene.horizon_distance_m = distance; scene.horizon_camera_height = effective_height
-        scene.horizon_camera_name = cam.name
+        props.horizon_distance_m = distance; props.horizon_camera_height = effective_height
+        props.horizon_camera_name = cam.name
         self.report({'INFO'}, utils.translate("Calculation complete.")); return {'FINISHED'}
+
 class HORIZON_OT_CreateEmpty(bpy.types.Operator):
     bl_idname = "scene_analysis.horizon_create_empty"; bl_label = "Create Empty for Horizon"
-    bl_description = "Creates an Empty object at the calculated horizon distance in front of the camera"
+    bl_description = bpy.app.translations.pgettext_tip("Creates an Empty object at the calculated horizon distance in front of the camera")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        cam = context.active_object; scene = context.scene; distance = scene.horizon_distance_m; ground_offset = scene.horizon_ground_offset
+        cam = context.active_object; props = context.scene.analysis_toolkit_props
+        distance = props.horizon_distance_m; ground_offset = props.horizon_ground_offset
         if not cam or cam.type != 'CAMERA': self.report({'WARNING'}, utils.translate("Active object is not a camera.")); return {'CANCELLED'}
         if distance <= 0: self.report({'WARNING'}, utils.translate("Result has not been calculated yet.")); return {'CANCELLED'}
         distance_unscaled = distance
@@ -328,17 +330,19 @@ class HORIZON_OT_CreateEmpty(bpy.types.Operator):
 # --- PARALLAX Operator ---
 class PARALLAX_OT_CalculateDistance(bpy.types.Operator):
     bl_idname = "scene_analysis.parallax_distance"; bl_label = "Calculate Parallax Distance"
-    bl_description = "Calculates the distance at which an object would have a parallax shift equal to the 'Allowed Pixel Shift'"
+    bl_description = bpy.app.translations.pgettext_tip("Calculates the distance at which an object would have a parallax shift equal to the 'Allowed Pixel Shift'")
+    bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
         cam = context.active_object
         scene = context.scene
+        props = scene.analysis_toolkit_props
         
         if not cam or cam.type != 'CAMERA':
             self.report({'WARNING'}, utils.translate("Active object is not a camera."))
             return {'CANCELLED'}
 
-        scene.parallax_camera_name = cam.name
+        props.parallax_camera_name = cam.name
 
         if utils.recalculate_parallax(scene):
             self.report({'INFO'}, utils.translate("Calculation complete."))
@@ -348,28 +352,33 @@ class PARALLAX_OT_CalculateDistance(bpy.types.Operator):
         return {'FINISHED'}
 
 class PARALLAX_OT_SetFrameA(bpy.types.Operator):
-    bl_idname = "scene_analysis.parallax_set_frame_a"; bl_label = "Set Point A"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Set the current frame as reference point A for parallax calculation"
+    bl_idname = "scene_analysis.parallax_set_frame_a"; bl_label = "Set Point A"
+    bl_description = bpy.app.translations.pgettext_tip("Set the current frame as reference point A for parallax calculation")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        context.scene.parallax_start_frame = context.scene.frame_current
-        if context.scene.parallax_camera_name:
+        props = context.scene.analysis_toolkit_props
+        props.parallax_start_frame = context.scene.frame_current
+        if props.parallax_camera_name:
             utils.on_parallax_setting_change(self, context)
         return {'FINISHED'}
 
 class PARALLAX_OT_SetFrameB(bpy.types.Operator):
-    bl_idname = "scene_analysis.parallax_set_frame_b"; bl_label = "Set Point B"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Set the current frame as reference point B for parallax calculation"
+    bl_idname = "scene_analysis.parallax_set_frame_b"; bl_label = "Set Point B"
+    bl_description = bpy.app.translations.pgettext_tip("Set the current frame as reference point B for parallax calculation")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        context.scene.parallax_end_frame = context.scene.frame_current
-        if context.scene.parallax_camera_name:
+        props = context.scene.analysis_toolkit_props
+        props.parallax_end_frame = context.scene.frame_current
+        if props.parallax_camera_name:
             utils.on_parallax_setting_change(self, context)
         return {'FINISHED'}
 
 class PARALLAX_OT_FindExtremes(bpy.types.Operator):
-    bl_idname = "scene_analysis.parallax_find_extremes"; bl_label = "Auto-Detect Max Range"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Finds the two frames within the scene's frame range where the camera has moved the farthest apart"
+    bl_idname = "scene_analysis.parallax_find_extremes"; bl_label = "Auto-Detect Max Range"
+    bl_description = bpy.app.translations.pgettext_tip("Finds the two frames within the scene's frame range where the camera has moved the farthest apart")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        cam = context.active_object; scene = context.scene
+        cam = context.active_object; scene = context.scene; props = scene.analysis_toolkit_props
         if not cam or cam.type != 'CAMERA': self.report({'WARNING'}, utils.translate("Active object is not a camera.")); return {'CANCELLED'}
         if not cam.animation_data: self.report({'WARNING'}, utils.translate("Camera has no animation data.")); return {'CANCELLED'}
         original_frame = scene.frame_current; frame_start, frame_end = scene.frame_start, scene.frame_end
@@ -386,17 +395,18 @@ class PARALLAX_OT_FindExtremes(bpy.types.Operator):
                 if dist_sq > max_dist_sq: max_dist_sq = dist_sq; best_a, best_b = frame1, frame2
         if best_a != -1:
             if best_a > best_b: best_a, best_b = best_b, best_a
-            scene.parallax_start_frame = best_a; scene.parallax_end_frame = best_b
+            props.parallax_start_frame = best_a; props.parallax_end_frame = best_b
             self.report({'INFO'}, utils.translate("Found max range between frame {a} and {b}.", a=best_a, b=best_b))
-            if scene.parallax_camera_name:
+            if props.parallax_camera_name:
                 utils.on_parallax_setting_change(self, context)
         return {'FINISHED'}
 
 class PARALLAX_OT_CreateEmpty(bpy.types.Operator):
     bl_idname = "scene_analysis.parallax_create_empty"; bl_label = "Create Empty for Parallax"
-    bl_description = "Creates an Empty object at the calculated parallax distance in front of the camera"
+    bl_description = bpy.app.translations.pgettext_tip("Creates an Empty object at the calculated parallax distance in front of the camera")
+    bl_options = {'REGISTER', 'UNDO'}
     def execute(self, context):
-        distance = context.scene.parallax_distance_m
+        distance = context.scene.analysis_toolkit_props.parallax_distance_m
         if distance <= 0:
             self.report({'WARNING'}, utils.translate("Result has not been calculated yet."))
             return {'CANCELLED'}
@@ -406,17 +416,19 @@ class PARALLAX_OT_CreateEmpty(bpy.types.Operator):
 
 # --- EVcalculator Operator ---
 class EV_OT_StepValue(bpy.types.Operator):
-    bl_idname = "scene_analysis.ev_step_value"; bl_label = "Step EV Value"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Adjust the Exposure Value by a specific step"
+    bl_idname = "scene_analysis.ev_step_value"; bl_label = "Step EV Value"
+    bl_description = bpy.app.translations.pgettext_tip("Adjust the Exposure Value by a specific step")
+    bl_options = {'REGISTER', 'UNDO'}
     step: FloatProperty()
     def execute(self, context):
-        context.scene.ev_calculator.ev_value += self.step
+        context.scene.analysis_toolkit_props.ev_calculator.ev_value += self.step
         return {'FINISHED'}
 
 # --- ANALYSIS Operator ---
 class ANALYSIS_OT_CopyValue(bpy.types.Operator):
-    bl_idname = "scene_analysis.copy_value"; bl_label = "Copy Value"; bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "Copy the specified value to the clipboard"
+    bl_idname = "scene_analysis.copy_value"; bl_label = "Copy Value"
+    bl_description = bpy.app.translations.pgettext_tip("Copy the specified value to the clipboard")
+    bl_options = {'REGISTER', 'UNDO'}
     value_to_copy: StringProperty()
     def execute(self, context):
         context.window_manager.clipboard = self.value_to_copy
