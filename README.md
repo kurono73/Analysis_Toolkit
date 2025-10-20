@@ -2,11 +2,25 @@
 The **Analysis Toolkit** is a set of measurement and calculation tools for Blender.
 
 All tools are located in the 3D Viewport's sidebar (press `N` to open) under the **"Analysis Toolkit"** tab.
+
+1. UV SS(Screen Space) Resolution
+2. Illuminance Meter
+3. EV Lux Converter
+4. EV Calculator
+5. Horizon Distance Calculation
+6. Parallax Distance Calculation
+7. Shooting Distance
+8. Unit Converter
+9. Speedometer
+---
+
 ## 1. UV SS(Screen Space) Resolution
 
-This tool calculates the required texture resolution for the selected object's screen based on the active camera, UV unwrapping data, and rendering resolution. 
+Analyzes the selected object and calculates the required texture resolution on screen, based on the active camera, UV Map, and render output resolution.  
 
-Understanding the optimal texture resolution helps identify insufficient or excessive textures.It can also be used to calculate the resolution of camera projection and embedded images.
+By evaluating the optimal texture density, it helps identify areas where textures may be undersampled or unnecessarily high-resolution.  
+This allows you to pre-determine the appropriate texture resolution for assets used in close-up or hero shots.  
+It can also be used to estimate the texture resolution needed for matte paintings, camera projections, or embedded image work.
 
 ### Interface
 
@@ -32,28 +46,26 @@ Understanding the optimal texture resolution helps identify insufficient or exce
 
 ## 2. Illuminance Meter
 
-This tool allows you to measure the illuminance (in Lux) at multiple points within your scene using the Cycles render engine, enabling physically-based lighting adjustments.
+Allows you to measure the illuminance (in Lux) at multiple points within your scene using the Cycles render engine, enabling physically-based lighting adjustments.
 
 Sun correction compensates for clipped or underexposed HDRIs based on measured illuminance values at the time of capture.
 
 It is especially useful for VFX look development or architectural lighting design.
 
-
->💡note:    
+>**Note:**  
 >It can also be used when using Eevee, but measurements are taken using the Cycles engine.  
 >These are only reference values and are not guaranteed to match reality.
-
 
 
 ### Interface
 
 - **1. Sensor Management:**
-    - **Add Sensor:** Creates a new arrow-shaped Empty at the 3D cursor's location. All sensors are automatically placed in a dedicated collection named "LightMeter Sensors".
+    - **Add Sensor:** Creates a new arrow-shaped Empty at the 3D cursor's location. All sensors are automatically placed in a dedicated collection named "LuxMeter Sensors".
 - **2. Correction Settings:**
     - **EV Compensation:**This setting is important when you want to match the calculated values to real-world light meter readings.In CG, lighting that appears visually correct is typically the result of a camera applying exposure compensation to achieve a proper-looking image.  
-    EV Compensation converts visually adjusted exposure back to **0 EV physical luminance**, allowing illuminance to be calculated and displayed on an absolute physical scale.  
-    The EV value can be derived from exposure data recorded during **HDRI creation,** or from metadata embedded in**VFX plates or source photography**.  
-    If the original exposure reference is unknown, entering an estimated EV value for the environment will produce results that are closer to real-world illuminance levels.  
+        EV Compensation converts visually adjusted exposure back to **0 EV physical luminance**, allowing illuminance to be calculated and displayed on an absolute physical scale.  
+        The EV value can be derived from exposure data recorded during **HDRI creation,** or from metadata embedded in**VFX plates or source photography**.  
+        If the original exposure reference is unknown, entering an estimated EV value for the environment will produce results that are closer to real-world illuminance levels.
         - Reference EV value：`Lux EV Converter`>`EV / Lux Reference`
         - EV calculation from metadata ： `EV Calculator`)
     
@@ -67,22 +79,22 @@ It is especially useful for VFX look development or architectural lighting desig
     - **Sun Object:** A pointer to select the `Sun` light in your scene.
     - **Basis Sensor:**The sensor to use as a reference for adjusting the sun's strength.
     - **Target Lux:** The desired illuminance value you want to achieve.
-    - **Adjust Sun Strength:** Automatically adjusts the selected `Sun` light's strength so that the **currently elected sensor** receives the specified `Target Lux`.The Sun light will be adjusted to the target illuminance, taking into account all other valid lighting, including the World light.
+    - **Adjust Sun Strength:** Automatically adjusts the selected `Sun` light's strength so that the **currently elected sensor** receives the specified `Target Lux`. The Sun light will be adjusted to the target illuminance, taking into account all other valid lighting, including the World light.
 
 ### Workflow
 
 - **Illuminance measurement:**
 1. Click **Add Sensor** and place the new sensor empties at the points of interest in your scene. Orient the arrows to point towards the direction you want to measure from (the arrow points away from the measurement surface).
-2. Click **Measure All Sensors**. The addon will process each sensor and display the results.
+2. Click **Measure All Sensors**. Will process each sensor and display the results.
 3. Measurement results can be saved in CSV format if necessary.
 - **Sun Correction**
 1. To match a real-world lighting condition, select a specific sensor, select your `Sun` light, enter a `Target Lux`, and click **Adjust Sun Strength**.
 2. Click **Measure All Sensors** again to check if the target illuminance is achieved.
 
-
->💡When correcting a clipped HDRI, measure the actual illuminance on-site and use the known **inverse EV correction** value of the created HDRI.  
+>💡**Note:**  
+> When correcting a clipped HDRI, measure the actual illuminance on-site and use the known **inverse EV correction** value of the created HDRI.  
+>The accuracy of the Sun correction may be affected if the Sun light’s Color intensity or Exposure values have been modified, as these parameters alter the physical light output.  
 >Sun correction results and dark scenes will have some errors in the results due to sampling accuracy issues.
-
 
 ---
 
@@ -117,7 +129,7 @@ A real-time exposure calculator to determine camera settings, similar to a photo
     - **Shutter:** Either **Speed (s)** with fractional display (e.g., `(1/125s)`) or **Angle (°)**.
     - **ISO:** Sensor sensitivity, with common presets.
     - **ND Filter:** Neutral Density filter value; select a preset (e.g., `ND8 (3 Stop)`) or enter a custom number of stops.
-    - **Exposure Value:** Desired EV, with buttons for `±1` stop and `±⅓` bstop adjustments.
+    - **Exposure Value:** Desired EV, with buttons for `±1` stop and `±⅓` stop adjustments.
 
 ### Workflow
 
@@ -197,7 +209,7 @@ A real-time calculator for converting between Imperial and Metric units.
 
 ### Interface
 
-- **Top Section (Imperial):** Choose the input format (`Feet (ft)`, `ft' in"`, `Inches (in)`) aand enter the value.
+- **Top Section (Imperial):** Choose the input format (`Feet (ft)`, `ft' in"`, `Inches (in)`) and enter the value.
 - **Bottom Section (Metric):** Choose the target unit (`mm`, `cm`, `m`) and enter the value.
 
 ### Workflow
@@ -215,7 +227,7 @@ Analyzes the speed of animated objects move.
 - **Scene Scale Factor:** Correction factor for speed calculation. E.g., if 1 Blender Unit = 1 cm, set to 0.01 to get results in meters/sec
 - **Target:** Select the animated object to analyze.
 - **Mode:**
-    - **Instantaneous:** Displays the object’s speed at the current frame (updates in real time).Calculates speed by advancing the timeline frame by frame.
+    - **Instantaneous:** Displays the object’s speed at the current frame (updates in real time). Calculates speed by advancing the timeline frame by frame.
     - **Range Analysis:** Measures speed over a specified frame range.
 - **Reference Frames (A, B) (Range Analysis only):** Start and end frames for analysis.
 - **Calculate Speed over Range (Range Analysis only):** Executes the range analysis.
