@@ -86,7 +86,7 @@ It is especially useful for VFX look development or architectural lighting desig
 
 ---
 
-## 3. Lux EV Converter
+## 3. EV Lux Converter
 
 A simple, real-time utility to convert between illuminance (Lux) and Exposure Value (EV at ISO 100).
 
